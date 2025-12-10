@@ -15,9 +15,9 @@ jobs:
           extra_nix_config: |
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
       - name: Build agda.compose
-        run: nix -L build .#agda-compose -o agda-compose
+        run: nix -L build .#agda-compose -o agda.compose
       - name: Create release
         run: |
-          gh release upload agda-compose agda-compose/agda.compose --clobber
+          gh release upload agda-compose agda.compose --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
