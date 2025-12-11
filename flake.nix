@@ -55,8 +55,8 @@
           # A command for adding Agda Unicode input sequences to a FUTO Keyboard user dictionary (as a JSON file)
           agda-futo-json = let
             script = ''
-              . + ($symbols[0] | to_entries | map({
-                word: .value, shortcut: .key, frequency: 250, locale: null, appId: 0
+              . + ($symbols[0] | to_entries | map(select(.key | test("^\\w+$")) | {
+                word: .value | .. | strings, shortcut: .key, frequency: 250, locale: null, appId: 0
               })) |
               unique_by({word, shortcut})
             '';
