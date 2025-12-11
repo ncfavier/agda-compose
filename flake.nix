@@ -20,11 +20,13 @@
         packages = {
           default = self.packages.${system}.agda-compose;
 
+          # A simple Rust program for converting JSON to a Compose file
           json2compose = naersk-lib.buildPackage {
             src = ./json2compose;
             nativeBuildInputs = with pkgs; [ libxkbcommon ];
           };
 
+          # A Compose file for Agda's Unicode input
           agda-compose = let
             script = ''
               with_entries((.key |= "\\" + .) | (.value |= first(.. | strings)))
@@ -35,6 +37,7 @@
             jq ${lib.escapeShellArg script} ${agda-symbols}/symbols.json | json2compose > "$out"
           '';
 
+          # A Gboard dictionary for Agda's Unicode input
           agda-gboard = let
             script = ''
               "# Gboard Dictionary version:2",
@@ -47,6 +50,31 @@
             nativeBuildInputs = with pkgs; [ jq ];
           } ''
             jq -r ${lib.escapeShellArg script} ${agda-symbols}/symbols.json > "$out"
+          '';
+
+          # A command for adding Agda Unicode input sequences to a FUTO Keyboard user dictionary (as a JSON file)
+          agda-futo-json = let
+            script = ''
+              . + ($symbols[0] | to_entries | map({
+                word: .value, shortcut: .key, frequency: 250, locale: null, appId: 0
+              })) |
+              unique_by({word, shortcut})
+            '';
+          in pkgs.writeShellScriptBin "agda-futo-json" ''
+            userDict=$1
+            tmp=$(mktemp)
+            jq --slurpfile symbols ${agda-symbols}/symbols.json ${lib.escapeShellArg script} "$userDict" > "$tmp" &&
+              mv -f "$tmp" "$userDict"
+          '';
+
+          # Same as agda-futo-json, but operates on a settings backup file
+          # (This can be exported and imported from the Miscellaneous menu)
+          agda-futo = pkgs.writeShellScriptBin "agda-futo" ''
+            settings=$1
+            tmp=$(mktemp -d)
+            unzip "$settings" userdictionary.json -d "$tmp"
+            ${lib.getExe self.packages.${system}.agda-futo-json} "$tmp/userdictionary.json"
+            zip -j --update "$settings" "$tmp/userdictionary.json"
           '';
         };
 
