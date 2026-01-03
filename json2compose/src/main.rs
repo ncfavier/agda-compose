@@ -1,25 +1,38 @@
 use std::collections::*;
 use std::io;
 use xkbcommon::xkb;
+use serde::Deserialize;
 
-fn char_to_keysym(c: char) -> String {
-  xkb::keysym_get_name(xkb::utf32_to_keysym(u32::from(c)))
+#[derive(Deserialize)]
+struct Compose {
+  keysyms: BTreeMap<String, String>,
+  entries: BTreeMap<String, String>,
+}
+
+impl Compose {
+  fn char_to_keysym(&self, c: char) -> String {
+    if let Some(sym) = self.keysyms.get(&c.to_string()) {
+      sym.clone()
+    } else {
+      xkb::keysym_get_name(xkb::utf32_to_keysym(u32::from(c)))
+    }
+  }
 }
 
 fn main() -> serde_json::Result<()> {
-  let entries: BTreeMap<String, String> = serde_json::from_reader(io::stdin())?;
+  let compose: Compose = serde_json::from_reader(io::stdin())?;
 
-  for (key, value) in entries {
+  for (key, value) in &compose.entries {
     let sequence: String = key
       .chars()
-      .map(|c| format!("<{}>", char_to_keysym(c)))
+      .map(|c| format!("<{}>", compose.char_to_keysym(c)))
       .collect::<Vec<String>>()
       .join(" ");
 
-    // assumes Compose strings are close enough to JSON strings
+    // assumes Compose string literals are close enough to JSON string literals
     let output = serde_json::to_string(&value)?;
 
-    println!("<Multi_key> {} : {}", sequence, output);
+    println!("{} : {}", sequence, output);
   }
   Ok(())
 }

@@ -29,7 +29,9 @@
           # A Compose file for Agda's Unicode input
           agda-compose = let
             script = ''
-              with_entries((.key |= "\\" + .) | (.value |= first(.. | strings)))
+              { entries: with_entries((.key |= "⋆\\" + .) | (.value |= first(.. | strings)))
+              , keysyms: { "⋆": "Multi_key" }
+              }
             '';
           in pkgs.runCommand "agda.compose" {
             nativeBuildInputs = with pkgs; [ jq self.packages.${system}.json2compose ];
